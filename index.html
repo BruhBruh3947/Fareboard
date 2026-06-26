@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fareboard — cheap flights</title>
+<meta name="description" content="Find cheap flights and explore the cheapest countries to fly to on an interactive globe." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
+:root{--ink:#0A1A2F;--ink2:#13273F;--amber:#FFB627;--paper:#EDF1F5;--card:#fff;--line:#D7DEE6;--go:#178A5E;--goSoft:#E4F4EC;--text:#16202B;--muted:#5E6B7A;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--text);font-family:'Archivo',system-ui,sans-serif;}
+.wrap{max-width:1040px;margin:0 auto;padding:18px 16px 60px;}
+input,select,button{font-family:inherit;}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;}
+.logo{display:inline-grid;place-items:center;width:34px;height:34px;background:var(--ink);color:var(--amber);border-radius:9px;transform:rotate(-8deg);font-size:18px;}
+.word{font-weight:900;letter-spacing:.22em;font-size:18px;}
+.nav{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px;}
+.nav a{text-decoration:none;padding:7px 14px;border-radius:7px;font-weight:700;font-size:13px;color:var(--muted);}
+.nav a.on{background:var(--ink);color:#fff;}
+.board{background:var(--ink);border-radius:18px;padding:18px;}
+.grid{display:grid;grid-template-columns:1fr auto 1fr 1fr .9fr;gap:10px;align-items:end;}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.fl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8ea4bd;font-weight:700;}
+.field input,.field select{background:#fff;border:0;border-radius:9px;padding:11px 12px;font-size:14px;font-weight:600;color:var(--text);width:100%;}
+.field input:focus,.field select:focus{outline:3px solid var(--amber);}
+.swap{align-self:end;height:42px;width:40px;border:0;border-radius:9px;background:var(--ink2);color:var(--amber);font-size:18px;cursor:pointer;}
+.searchBtn{grid-column:1/-1;margin-top:4px;background:var(--amber);color:var(--ink);border:0;border-radius:11px;padding:14px;font-weight:800;font-size:15px;cursor:pointer;}
+.searchBtn:disabled{opacity:.7;}
+.hero{margin-top:16px;text-align:center;}
+.hk{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8ea4bd;font-weight:700;}
+.hp{display:flex;justify-content:center;align-items:center;gap:4px;margin:8px 0 4px;min-height:64px;}
+.fd{color:var(--amber);font-weight:800;font-size:34px;margin-right:2px;}
+.flap{display:inline-grid;place-items:center;min-width:46px;height:64px;background:#06101d;color:var(--amber);border-radius:7px;font-weight:900;font-size:46px;border-top:1px solid #1a2c44;}
+.hs{font-family:'DM Mono';font-size:12.5px;color:#b9c8da;}
+.controls{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 12px;flex-wrap:wrap;gap:8px;}
+.rc{font-weight:700;font-size:13px;color:var(--muted);}
+.tag{font-size:11px;font-weight:700;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 10px;color:var(--muted);}
+.list{display:flex;flex-direction:column;gap:12px;}
+.pass{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.pm{flex:1;padding:16px 18px;}
+.route{font-family:'DM Mono';font-size:20px;font-weight:500;}
+.meta{display:flex;gap:8px;margin-top:10px;font-size:13px;color:var(--muted);font-weight:600;flex-wrap:wrap;}
+.meta b{color:var(--text);}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:#eef2f6;color:var(--muted);}
+.badge.ns{background:var(--goSoft);color:var(--go);}
+.stub{width:150px;flex-shrink:0;background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:16px 12px;text-align:center;position:relative;}
+.stub:before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:2px;background:repeating-linear-gradient(var(--paper) 0 7px,transparent 7px 14px);}
+.sk{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#8ea4bd;font-weight:700;}
+.sp{font-weight:900;font-size:28px;color:var(--amber);}
+.go{margin-top:6px;background:var(--amber);color:var(--ink);border:0;border-radius:8px;padding:7px 16px;font-weight:800;font-size:13px;text-decoration:none;}
+.skl{height:104px;border-radius:14px;background:linear-gradient(100deg,#e7ecf1 30%,#f2f5f8 50%,#e7ecf1 70%);background-size:200% 100%;animation:sh 1.2s infinite;}
+@keyframes sh{to{background-position:-200% 0}}
+.note{padding:24px;text-align:center;color:var(--muted);font-weight:600;background:var(--card);border:1px dashed var(--line);border-radius:14px;}
+@media(max-width:720px){.grid{grid-template-columns:1fr 1fr}.swap{grid-row:1;justify-self:end}.stub{width:122px}.flap{min-width:38px;height:54px;font-size:38px}.fd{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div class="brand"><span class="logo">✈</span><span class="word">FAREBOARD</span></div>
+    <nav class="nav"><a class="on" href="/">Departures</a><a href="/world">🌍 World</a></nav>
+  </header>
+
+  <section class="board">
+    <div class="grid">
+      <label class="field"><span class="fl">From</span><input id="from" value="New York" placeholder="City or code" /></label>
+      <button class="swap" id="swap">⇄</button>
+      <label class="field"><span class="fl">To</span><input id="to" value="London" placeholder="City or code" /></label>
+      <label class="field"><span class="fl">Month</span><input id="month" type="month" /></label>
+      <label class="field"><span class="fl">Trip</span><select id="trip"><option value="round">Round</option><option value="oneway">One way</option></select></label>
+      <button class="searchBtn" id="searchBtn">Search fares</button>
+    </div>
+    <div class="hero">
+      <div class="hk" id="hk">Cheapest fare</div>
+      <div class="hp" id="hp"></div>
+      <div class="hs" id="hs"></div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <span class="rc" id="rc">—</span>
+    <span class="tag" id="srcTag"></span>
+  </div>
+  <main class="list" id="list"></main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const d=new Date(); $("month").value=d.toISOString().slice(0,7);
+$("swap").onclick=()=>{const a=$("from").value;$("from").value=$("to").value;$("to").value=a;};
+$("searchBtn").onclick=search;
+
+function code(s){const m={"new york":"JFK","london":"LON","los angeles":"LAX","paris":"PAR","tokyo":"TYO","rome":"ROM","madrid":"MAD","barcelona":"BCN","dubai":"DXB","miami":"MIA","chicago":"ORD","san francisco":"SFO","boston":"BOS","seattle":"SEA"};const t=s.trim().toLowerCase();if(m[t])return m[t];return s.trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+
+function flap(v){const host=$("hp");if(v==null){host.innerHTML='';return;}const ds=String(v).split('');host.innerHTML='<span class="fd">$</span>'+ds.map(x=>'<span class="flap">'+x+'</span>').join('');}
+
+function sampleFlights(o,dd){
+  const air=["AA","BA","DL","UA","IB","AF","VS"];const out=[];
+  for(let i=0;i<6;i++){const seed=hash(o+dd+i);const price=120+(seed%900);const stops=seed%3===0?1:0;
+    out.push({airline:air[seed%air.length],flightNo:air[seed%air.length]+(100+seed%800),price,stops,depart:"",ret:""});}
+  return out.sort((a,b)=>a.price-b.price);
+}
+
+function card(f,o,dd,bookUrl){
+  const stop=f.stops>0?'<span class="badge">'+f.stops+' stop'+(f.stops>1?'s':'')+'</span>':'<span class="badge ns">nonstop</span>';
+  const when=f.depart?('<span>'+String(f.depart).slice(0,10)+'</span><span>·</span>'):'';
+  return '<article class="pass"><div class="pm"><div class="route">'+o+' → '+dd+'</div>'+
+    '<div class="meta"><b>'+(f.airline||'')+'</b><span>'+(f.flightNo||'')+'</span><span>·</span>'+when+stop+'</div></div>'+
+    '<div class="stub"><span class="sk">Cheapest found</span><span class="sp">$'+f.price+'</span>'+
+    '<a class="go" href="'+(bookUrl||'#')+'" target="_blank" rel="noopener">Book →</a></div></article>';
+}
+
+async function search(){
+  const btn=$("searchBtn");btn.disabled=true;btn.textContent="Searching…";
+  const o=code($("from").value),dd=code($("to").value),month=$("month").value,oneway=$("trip").value==="oneway";
+  $("hk").textContent="Checking fares "+o+" → "+dd;flap(null);$("hs").textContent="";
+  $("rc").textContent="Searching…";$("list").innerHTML='<div class="skl"></div><div class="skl"></div><div class="skl"></div>';
+  let flights=[],bookUrl="https://www.aviasales.com/?origin_iata="+o+"&destination_iata="+dd,sample=false;
+  try{
+    const r=await fetch(`/api/search?from=${o}&to=${dd}&month=${month}&oneway=${oneway}`);
+    const data=await r.json();
+    if(data.sample||data.error||!(data.flights&&data.flights.length)){sample=true;flights=sampleFlights(o,dd);}
+    else{flights=data.flights;bookUrl=data.bookUrl||bookUrl;}
+  }catch(e){sample=true;flights=sampleFlights(o,dd);}
+  $("srcTag").textContent=sample?"sample data — add your free token for live prices":"live cached prices · per traveler";
+  const cheap=flights[0];
+  $("hk").textContent="Cheapest "+o+" → "+dd;
+  flap(cheap?cheap.price:0);
+  $("hs").textContent=cheap?(cheap.airline+" "+cheap.flightNo+" · "+(cheap.stops>0?cheap.stops+" stop":"nonstop")):"";
+  $("rc").textContent=flights.length+" fares";
+  $("list").innerHTML=flights.length?flights.map(f=>card(f,o,dd,bookUrl)).join(''):'<div class="note">No fares cached for this route/month yet. Try a bigger city or another month.</div>';
+  btn.disabled=false;btn.textContent="Search fares";
+}
+search();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fareboard — World View</title>
+<meta name="description" content="Tap any country to see the cheapest flight price there from your home airport." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=DM+Mono:wght@500&display=swap');
+:root{--ink:#0A1A2F;--amber:#FFB627;--go:#2BD49B;}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--ink);color:#fff;font-family:'Archivo',system-ui,sans-serif;overflow:hidden;}
+#globe{position:fixed;inset:0;}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(#0A1A2F,rgba(10,26,47,0));}
+.brand{display:flex;align-items:center;gap:8px;font-weight:900;letter-spacing:.14em;font-size:13px;}
+.brand .logo{display:inline-grid;place-items:center;width:26px;height:26px;background:var(--amber);color:var(--ink);border-radius:7px;transform:rotate(-8deg);}
+.nav{display:flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:3px;}
+.nav a{text-decoration:none;padding:6px 11px;border-radius:6px;font-weight:700;font-size:12px;color:#cdd9e7;}
+.nav a.on{background:var(--amber);color:var(--ink);}
+.search{margin-left:auto;display:flex;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:4px;}
+.search input{background:transparent;border:0;color:#fff;font-weight:700;font-size:14px;width:90px;padding:6px 8px;text-transform:uppercase;}
+.search input:focus{outline:none;}
+.search button{background:var(--amber);color:var(--ink);border:0;border-radius:7px;padding:6px 12px;font-weight:800;cursor:pointer;}
+.note{position:fixed;top:52px;left:0;right:0;text-align:center;font-size:11px;color:#8ea4bd;z-index:4;pointer-events:none;}
+.card{position:fixed;left:14px;bottom:14px;z-index:5;background:rgba(8,16,29,.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;width:240px;}
+.card .k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8ea4bd;font-weight:700;}
+.card .country{font-weight:800;font-size:19px;margin-top:2px;}
+.card .big{font-weight:900;font-size:30px;color:var(--amber);margin-top:6px;}
+.card .sub{font-family:'DM Mono';font-size:12px;color:#cdd9e7;margin-top:3px;min-height:15px;}
+.card .view{display:none;margin-top:11px;width:100%;text-align:center;background:var(--amber);color:var(--ink);border:0;border-radius:9px;padding:9px;font-weight:800;font-size:13px;cursor:pointer;text-decoration:none;}
+.card .view.show{display:block;}
+.loading{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#8ea4bd;}
+.spin{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--amber);border-radius:50%;animation:r 1s linear infinite;}
+@keyframes r{to{transform:rotate(360deg)}}
+.fb{position:fixed;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;gap:8px;}
+.fb.show{display:flex;}
+</style>
+</head>
+<body>
+<div id="globe"></div>
+<div class="topbar">
+  <div class="brand"><span class="logo">✈</span> WORLD</div>
+  <nav class="nav"><a href="/">Departures</a><a class="on" href="/world">🌍 World</a></nav>
+  <div class="search"><input id="origin" value="JFK" maxlength="3" /><button id="go">Go</button></div>
+</div>
+<div class="note" id="note">drag to spin · tap a country</div>
+
+<div class="card">
+  <div class="k">From <span id="ocode">JFK</span> · cheapest country</div>
+  <div class="country" id="cName">—</div>
+  <div class="big" id="cPrice">—</div>
+  <div class="sub" id="cHint">Tap a country to see its fare</div>
+  <a class="view" id="cView" target="_blank" rel="noopener">View flights →</a>
+</div>
+
+<div class="loading" id="loading"><div class="spin"></div><div>Loading the world…</div></div>
+<div class="fb" id="fb"><div style="font-size:40px">🌍</div><div style="font-weight:800">Couldn't load here</div><div style="color:#8ea4bd;max-width:320px">The 3D globe or map data is blocked in this preview, but works once deployed.</div></div>
+
+<script src="https://unpkg.com/globe.gl"></script>
+<script>
+const GEO="https://vasturiano.github.io/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson";
+const $=id=>document.getElementById(id);
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function nameOf(f){return f.properties.ADMIN||f.properties.NAME||"Country";}
+function iso2(f){return f.properties.ISO_A2;}
+function samplePrice(o,c){return 90+(hash(o+"|"+c)%1600);}
+function colorFor(p,min,max){if(p==null)return 'rgba(120,140,165,0.25)';const t=(p-min)/Math.max(1,max-min);return t<0.34?'#2BD49B':t<0.67?'#FF9F45':'#FF5D6C';}
+
+let world,features=[],selected=null,origin="JFK",usingSample=true;
+
+async function getPrices(o){
+  try{
+    const r=await fetch("/api/explore?from="+o);
+    const data=await r.json();
+    if(data.sample||!(data.countries&&data.countries.length))return null;
+    const map={};data.countries.forEach(c=>{map[c.iso2]=c.price;});
+    return map;
+  }catch(e){return null;}
+}
+
+async function recompute(){
+  $("ocode").textContent=origin;
+  const real=await getPrices(origin);
+  usingSample=!real;
+  $("note").textContent=(usingSample?"sample prices · ":"live cached prices · ")+"drag to spin · tap a country";
+  let min=Infinity,max=-Infinity;
+  features.forEach(f=>{
+    const p=real?(real[iso2(f)]??null):samplePrice(origin,nameOf(f));
+    f.__price=p; if(p!=null){min=Math.min(min,p);max=Math.max(max,p);}
+  });
+  features.forEach(f=>{f.__color=colorFor(f.__price,min,max);});
+  const withP=features.filter(f=>f.__price!=null);
+  if(withP.length){const cheap=withP.reduce((a,b)=>a.__price<b.__price?a:b);
+    $("cName").textContent=nameOf(cheap);$("cPrice").textContent='$'+cheap.__price;}
+  else{$("cName").textContent="—";$("cPrice").textContent="—";}
+  $("cHint").textContent="Tap a country to see its fare";$("cView").classList.remove('show');selected=null;
+  if(world)world.polygonsData(features.filter(f=>iso2(f)!=='AQ'));
+}
+
+function selectCountry(f){
+  selected=f;
+  $("cName").textContent=nameOf(f);
+  $("cPrice").textContent=f.__price!=null?'$'+f.__price:'no data';
+  $("cHint").textContent=f.__price!=null?(usingSample?'sample fare':'cheapest cached fare'):'no cached fare yet';
+  const v=$("cView");v.href='https://www.aviasales.com/?origin_iata='+origin+'&destination_country='+iso2(f);v.classList.add('show');
+  world.polygonsData(features.filter(f=>iso2(f)!=='AQ'));
+}
+
+fetch(GEO).then(r=>r.json()).then(async geo=>{
+  features=geo.features;
+  if(typeof Globe==='undefined'){$("loading").style.display='none';$("fb").classList.add('show');return;}
+  await recompute();
+  world=Globe()($("globe"))
+    .backgroundColor('#0A1A2F')
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+    .showAtmosphere(true).atmosphereColor('#7fb2ff').atmosphereAltitude(0.16)
+    .polygonsData(features.filter(f=>iso2(f)!=='AQ'))
+    .polygonCapColor(f=>f===selected?'#FFFFFF':f.__color)
+    .polygonSideColor(()=>'rgba(8,16,29,0.55)')
+    .polygonStrokeColor(()=>'rgba(255,255,255,0.15)')
+    .polygonAltitude(f=>f===selected?0.10:0.012)
+    .polygonLabel(f=>'<div style="font-family:Archivo;font-weight:700">'+nameOf(f)+'</div><div style="font-family:DM Mono;color:#FFB627">'+(f.__price!=null?'$'+f.__price:'no data')+'</div>')
+    .polygonsTransitionDuration(300)
+    .onPolygonClick(selectCountry);
+  const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=0.5;c.enableDamping=true;
+  world.pointOfView({lat:25,lng:-40,altitude:2.4});
+  $("loading").style.display='none';
+}).catch(()=>{$("loading").style.display='none';$("fb").classList.add('show');});
+
+$("go").onclick=()=>{origin=($("origin").value.trim().toUpperCase()||"JFK");recompute();};
+$("origin").addEventListener('keydown',e=>{if(e.key==='Enter')$("go").click();});
+setTimeout(()=>{if(typeof Globe==='undefined'){$("loading").style.display='none';$("fb").classList.add('show');}},4000);
+</script>
+</body>
+</html>
