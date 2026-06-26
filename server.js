@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.TP_TOKEN;
 const MARKER = process.env.TP_MARKER || "";
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(__dirname));
 
 /* some airports are searched by their CITY code on Aviasales */
 const TO_CITY = {
@@ -126,8 +126,8 @@ app.get("/api/explore", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/world", (req, res) => res.sendFile(path.join(__dirname, "public", "world.html")));
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+app.get("/world", (req, res) => res.sendFile(path.join(__dirname, "world.html")));
 
 app.listen(PORT, () => {
   console.log(`Fareboard on http://localhost:${PORT}`);
